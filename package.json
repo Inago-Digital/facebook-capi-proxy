@@ -1,0 +1,28 @@
+{
+  "name": "fb-capi-proxy",
+  "version": "1.0.0",
+  "description": "Multi-tenant Facebook Conversions API proxy server",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "migrate": "node src/migrate.js",
+    "dashboard:dev": "npm --prefix dashboard run dev",
+    "dashboard:build": "npm --prefix dashboard run build",
+    "dashboard:preview": "npm --prefix dashboard run preview"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.6.2",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "express-rate-limit": "^7.5.1",
+    "helmet": "^7.2.0",
+    "node-fetch": "^2.7.0",
+    "pg": "^8.19.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
