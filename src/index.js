@@ -25,6 +25,31 @@ function getAdminAllowedOrigins() {
 
 const adminAllowedOrigins = getAdminAllowedOrigins()
 
+async function getActiveSiteDomains() {
+  const rows = await db.all("SELECT domain FROM sites WHERE active = 1")
+  return rows.map((row) => row.domain.trim())
+}
+
+const clientAllowedOriginsCache = {
+  domains: [],
+  fetchedAt: 0,
+  ttlMs: 5 * 60 * 1000,
+}
+
+async function getClientAllowedOrigins() {
+  const now = Date.now()
+  if (
+    now - clientAllowedOriginsCache.fetchedAt <
+    clientAllowedOriginsCache.ttlMs
+  ) {
+    return clientAllowedOriginsCache.domains
+  }
+  const domains = await getActiveSiteDomains()
+  clientAllowedOriginsCache.domains = domains
+  clientAllowedOriginsCache.fetchedAt = now
+  return domains
+}
+
 const adminCors = cors({
   origin(origin, cb) {
     if (!origin) {
@@ -38,6 +63,21 @@ const adminCors = cors({
     return cb(null, false)
   },
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: false,
+})
+
+const clientCors = cors({
+  origin: async (origin, cb) => {
+    if (!origin) {
+      return cb(null, true)
+    }
+
+    const allowedOrigins = await getClientAllowedOrigins()
+    const isAllowed = allowedOrigins.some((domain) => origin.endsWith(domain))
+    cb(null, isAllowed)
+  },
+  methods: ["POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: false,
 })
@@ -56,9 +96,12 @@ app.use(
   }),
 )
 
-app.options("/admin/*", adminCors)
-app.get("/", (_req, res) => res.sendFile(dashboardPath))
+app.options("/fb-capi-client.js", clientCors)
 app.get("/fb-capi-client.js", (_req, res) => res.sendFile(fbCapiClientPath))
+
+app.options("/admin/*", adminCors)
+
+app.get("/", (_req, res) => res.sendFile(dashboardPath))
 
 // ── Body parser ───────────────────────────────────────────────────────────────
 app.use(express.json({ limit: "64kb" }))
