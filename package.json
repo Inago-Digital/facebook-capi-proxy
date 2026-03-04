@@ -6,10 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "migrate": "node src/migrate.js",
-    "dashboard:dev": "npm --prefix dashboard run dev",
-    "dashboard:build": "npm --prefix dashboard run build",
-    "dashboard:preview": "npm --prefix dashboard run preview"
+    "migrate": "node src/migrate.js"
   },
   "dependencies": {
     "better-sqlite3": "^12.6.2",
