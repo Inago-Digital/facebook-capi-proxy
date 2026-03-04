@@ -1,0 +1,33 @@
+{
+  "name": "dashboard",
+  "version": "1.0.0",
+  "description": "Multi-tenant Facebook Conversions API proxy dashboard",
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch & tailwindcss -i ./src/style/global.css -o ./_site/style/global.css --watch & eleventy --formats=11ty.jsx,11ty.tsx --serve",
+    "build": "vite build && tailwindcss -i ./src/style/global.css -o ./_site/style/global.css --minify && eleventy --formats=11ty.jsx,11ty.tsx"
+  },
+  "dependencies": {
+    "@11ty/eleventy": "^3.1.2",
+    "@floating-ui/react": "^0.27.19",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.23.24",
+    "highlight.js": "^11.11.1",
+    "lucide-react": "^0.577.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwind-merge": "^3.3.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vite": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.3",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.14"
+  }
+}

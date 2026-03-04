@@ -13,7 +13,6 @@ const eventsRouter = require("./events")
 
 const app = express()
 const PORT = process.env.PORT || 3000
-const dashboardPath = path.join(__dirname, "../index.html")
 const fbCapiClientPath = path.join(__dirname, "./fb-capi-client.js")
 
 function getAdminAllowedOrigins() {
@@ -42,7 +41,7 @@ const adminCors = cors({
   credentials: false,
 })
 
-const publicClientScriptCors = cors({
+const publicOptionsCors = cors({
   origin: "*",
   methods: ["GET", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -63,15 +62,18 @@ app.use(
   }),
 )
 
-app.options("/fb-capi-client.js", publicClientScriptCors)
-app.get("/fb-capi-client.js", publicClientScriptCors, (_req, res) => {
+app.options("/fb-capi-client.js", publicOptionsCors)
+app.get("/fb-capi-client.js", publicOptionsCors, (_req, res) => {
   res.setHeader("Cross-Origin-Resource-Policy", "cross-origin")
   res.sendFile(fbCapiClientPath)
 })
 
-app.options("/admin/*", adminCors)
+app.options("/health", publicOptionsCors)
+app.get("/health", publicOptionsCors, (_req, res) =>
+  res.json({ status: "ok", ts: new Date().toISOString() }),
+)
 
-app.get("/", (_req, res) => res.sendFile(dashboardPath))
+app.options("/admin/*", adminCors)
 
 // ── Body parser ───────────────────────────────────────────────────────────────
 app.use(express.json({ limit: "64kb" }))
@@ -90,10 +92,6 @@ app.use("/event", limiter)
 app.use("/event", eventsRouter)
 app.use("/admin", adminCors, adminRouter)
 
-app.get("/health", (_req, res) =>
-  res.json({ status: "ok", ts: new Date().toISOString() }),
-)
-
 app.use((_req, res) => res.status(404).json({ error: "Not found" }))
 
 app.use((err, _req, res, _next) => {
@@ -108,3 +106,5 @@ app.listen(PORT, () => {
 })
 
 module.exports = app
+
+export {}

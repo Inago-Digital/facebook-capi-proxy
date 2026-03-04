@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * fb-capi-client.js
  * Drop this into any static site. Configure CAPI_PROXY and CAPI_KEY.
@@ -17,7 +18,10 @@
   var TOKEN_SKEW_MS = 5000
 
   function resolveAuthUrl() {
-    var explicit = typeof window.CAPI_AUTH_URL === "string" ? window.CAPI_AUTH_URL.trim() : ""
+    var explicit =
+      typeof window.CAPI_AUTH_URL === "string"
+        ? window.CAPI_AUTH_URL.trim()
+        : ""
     if (explicit) return explicit
 
     var proxy = String(window.CAPI_PROXY || "").trim()
@@ -101,7 +105,8 @@
       })
 
       if (!res.ok || !body.access_token) {
-        var message = body && body.error ? body.error : "Failed to get event access token"
+        var message =
+          body && body.error ? body.error : "Failed to get event access token"
         throw new Error(message)
       }
 
@@ -136,7 +141,7 @@
   /**
    * @param {string}  eventName
    * @param {object}  customData  { value, currency, content_ids, … }
-   * @param {object}  userData    { em, ph, fn, ln }  — hashed automatically
+   * @param {object}  userData    { em, ph, fn, ln }  - hashed automatically
    * @param {object}  opts        { test_event_code }
    */
   window.fbCapi = async function (eventName, customData, userData, opts) {

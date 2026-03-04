@@ -1,0 +1,94 @@
+name: Build and Publish
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - dashboard/**
+      - server/**
+      - .github/workflows/build-and-publish.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy-dashboard:
+    name: Deploy dashboard to gh-pages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: dashboard/pnpm-lock.yaml
+
+      - name: Install dashboard dependencies
+        working-directory: dashboard
+        run: pnpm install --frozen-lockfile
+
+      - name: Build dashboard
+        working-directory: dashboard
+        run: pnpm build
+
+      - name: Publish dashboard to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: dashboard/_site
+          force_orphan: true
+
+  deploy-server:
+    name: Deploy server build to server-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+
+      - name: Install server dependencies
+        working-directory: server
+        run: pnpm install --frozen-lockfile
+
+      - name: Build server
+        working-directory: server
+        run: pnpm build
+
+      - name: Stage server build output
+        run: |
+          rm -rf server/.deploy
+          mkdir -p server/.deploy
+          cp -R server/dist server/.deploy/dist
+          cp server/package.json server/pnpm-lock.yaml server/README.md server/.deploy/
+
+      - name: Publish server build to server-build
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: server-build
+          publish_dir: server/.deploy
+          force_orphan: true

@@ -1,11 +1,11 @@
-'use strict';
+"use strict"
 /**
- * migrate.js — creates tables if they don't exist.
- * Run with:  node src/migrate.js
+ * migrate.ts - creates tables if they don't exist.
+ * Run with:  npm run migrate
  */
 
-require('dotenv').config();
-const db = require('./db');
+require("dotenv").config()
+const db = require("./db")
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS sites (
@@ -76,7 +76,7 @@ CREATE INDEX IF NOT EXISTS idx_admin_tokens_session_id
 
 CREATE INDEX IF NOT EXISTS idx_admin_tokens_expires_at
   ON admin_tokens(expires_at);
-`;
+`
 
 const SCHEMA_PG = `
 CREATE TABLE IF NOT EXISTS sites (
@@ -144,16 +144,18 @@ CREATE INDEX IF NOT EXISTS idx_admin_tokens_session_id
 
 CREATE INDEX IF NOT EXISTS idx_admin_tokens_expires_at
   ON admin_tokens(expires_at);
-`;
+`
 
 async function migrate() {
-  const schema = db.driver === 'postgres' ? SCHEMA_PG : SCHEMA;
-  await db.exec(schema);
-  console.log(`✅  Migration complete (driver: ${db.driver})`);
-  process.exit(0);
+  const schema = db.driver === "postgres" ? SCHEMA_PG : SCHEMA
+  await db.exec(schema)
+  console.log(`✅  Migration complete (driver: ${db.driver})`)
+  process.exit(0)
 }
 
-migrate().catch(err => {
-  console.error('Migration failed:', err);
-  process.exit(1);
-});
+migrate().catch((err) => {
+  console.error("Migration failed:", err)
+  process.exit(1)
+})
+
+export {}

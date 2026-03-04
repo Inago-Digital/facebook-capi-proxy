@@ -1,7 +1,7 @@
 "use strict"
 
 /**
- * db.js — thin abstraction over SQLite (better-sqlite3) or Postgres (pg).
+ * db.js - thin abstraction over SQLite (better-sqlite3) or Postgres (pg).
  * Exposes a small interface used by the rest of the app:
  *   db.get(sql, params)   → single row | undefined
  *   db.all(sql, params)   → array of rows
@@ -52,7 +52,7 @@ if (driver === "sqlite") {
   const { Pool } = require("pg")
   const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 
-  // Postgres uses $1 $2… placeholders; our callers use ? — convert on the fly.
+  // Postgres uses $1 $2… placeholders; our callers use ? - convert on the fly.
   function toPositional(sql, params) {
     let i = 0
     const converted = sql.replace(/\?/g, () => `$${++i}`)
@@ -87,3 +87,5 @@ if (driver === "sqlite") {
 }
 
 module.exports = db
+
+export {}
