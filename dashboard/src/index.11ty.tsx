@@ -1,6 +1,6 @@
 import { App } from "./components/App.11ty"
 
-const API_BASE_FROM_ENV = (process.env.VITE_ADMIN_API_BASE_URL || "").trim()
+const API_BASE_FROM_ENV = "https://capi-proxy.inago.cz"
 
 export const data = {
   title: "FB CAPI Proxy - Admin",
