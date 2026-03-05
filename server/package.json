@@ -1,5 +1,5 @@
 {
-  "name": "fb-capi-proxy",
+  "name": "fb-capi-proxy-server",
   "version": "1.0.0",
   "description": "Multi-tenant Facebook Conversions API proxy server",
   "main": "dist/index.js",

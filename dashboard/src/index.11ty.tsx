@@ -1,6 +1,7 @@
 import { App } from "./components/App.11ty"
 
-const API_BASE = "https://capi-proxy.inago.cz"
+// const API_BASE = "https://capi-proxy.inago.cz"
+const API_BASE = "http://localhost:3000"
 
 export const data = {
   title: "FB CAPI Proxy - Admin",

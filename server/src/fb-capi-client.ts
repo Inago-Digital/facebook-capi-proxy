@@ -1,6 +1,7 @@
 /**
  * fb-capi-client.js
- * Drop this into any static site. Configure CAPI_PROXY and CAPI_KEY.
+ * A lightweight JavaScript client for sending events to the Facebook Conversions API via a proxy server.
+ * Configure CAPI_PROXY and CAPI_KEY.
  * Optional: set CAPI_AUTH_URL (defaults to CAPI_PROXY + /auth).
  */
 
@@ -73,7 +74,9 @@ interface FbUserDataPayload extends Record<string, unknown> {
 
   function resolveAuthUrl(): string {
     const explicit =
-      typeof window.CAPI_AUTH_URL === "string" ? window.CAPI_AUTH_URL.trim() : ""
+      typeof window.CAPI_AUTH_URL === "string"
+        ? window.CAPI_AUTH_URL.trim()
+        : ""
     if (explicit) return explicit
 
     const proxy = String(window.CAPI_PROXY || "").trim()
@@ -121,7 +124,9 @@ interface FbUserDataPayload extends Record<string, unknown> {
 
   function getExternalId(): string {
     const key = "_fbcapi_eid"
-    const match = document.cookie.match(new RegExp("(?:^|; )" + key + "=([^;]*)"))
+    const match = document.cookie.match(
+      new RegExp("(?:^|; )" + key + "=([^;]*)"),
+    )
     if (match) return match[1]
 
     const id = Math.random().toString(36).slice(2) + Date.now().toString(36)
@@ -158,7 +163,8 @@ interface FbUserDataPayload extends Record<string, unknown> {
 
       const tokenValue = asString(body.access_token) ?? ""
       if (!res.ok || !tokenValue) {
-        const message = asString(body.error) ?? "Failed to get event access token"
+        const message =
+          asString(body.error) ?? "Failed to get event access token"
         throw new Error(message)
       }
 
