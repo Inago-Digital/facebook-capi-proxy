@@ -1,30 +1,82 @@
-// @ts-nocheck
 /**
  * fb-capi-client.js
  * Drop this into any static site. Configure CAPI_PROXY and CAPI_KEY.
  * Optional: set CAPI_AUTH_URL (defaults to CAPI_PROXY + /auth).
- *
- * Usage (after script loads):
- *   fbCapi('Purchase', { value: 49.99, currency: 'USD' });
- *   fbCapi('Lead');
- *   fbCapi('PageView');  ← fired automatically on load
  */
-;(function (window) {
+
+type CustomData = Record<string, unknown>
+
+type UserDataInput = {
+  em?: string
+  email?: string
+  ph?: string
+  phone?: string
+  fn?: string
+  ln?: string
+}
+
+type FbCapiOptions = {
+  event_source_url?: string
+  test_event_code?: string
+}
+
+type FbCapiFn = (
+  eventName: string,
+  customData?: CustomData,
+  userData?: UserDataInput,
+  opts?: FbCapiOptions,
+) => Promise<unknown>
+
+interface Window {
+  CAPI_AUTH_URL?: string
+  CAPI_PROXY?: string
+  CAPI_KEY?: string
+  fbCapi: FbCapiFn
+}
+
+interface AuthResponseBody {
+  access_token?: string
+  expires_at?: string
+  error?: string
+}
+
+interface EventResponseBody {
+  error?: string
+}
+
+interface FbUserDataPayload extends Record<string, unknown> {
+  external_id: string[]
+  client_user_agent: string
+  em?: string[]
+  ph?: string[]
+  fn?: string[]
+  ln?: string[]
+  fbc?: string
+  fbp?: string
+}
+
+;(function (window: Window) {
   "use strict"
 
-  var accessToken = ""
-  var accessTokenExpiresAtMs = 0
-  var pendingTokenPromise = null
-  var TOKEN_SKEW_MS = 5000
+  let accessToken = ""
+  let accessTokenExpiresAtMs = 0
+  let pendingTokenPromise: Promise<string> | null = null
+  const TOKEN_SKEW_MS = 5000
 
-  function resolveAuthUrl() {
-    var explicit =
-      typeof window.CAPI_AUTH_URL === "string"
-        ? window.CAPI_AUTH_URL.trim()
-        : ""
+  function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null
+  }
+
+  function asString(value: unknown): string | undefined {
+    return typeof value === "string" ? value : undefined
+  }
+
+  function resolveAuthUrl(): string {
+    const explicit =
+      typeof window.CAPI_AUTH_URL === "string" ? window.CAPI_AUTH_URL.trim() : ""
     if (explicit) return explicit
 
-    var proxy = String(window.CAPI_PROXY || "").trim()
+    const proxy = String(window.CAPI_PROXY || "").trim()
     if (!proxy) throw new Error("CAPI_PROXY must be set")
 
     if (/\/event\/?$/i.test(proxy)) {
@@ -34,50 +86,51 @@
     return proxy.replace(/\/+$/, "") + "/auth"
   }
 
-  function getProxyUrl() {
-    var proxy = String(window.CAPI_PROXY || "").trim()
+  function getProxyUrl(): string {
+    const proxy = String(window.CAPI_PROXY || "").trim()
     if (!proxy) throw new Error("CAPI_PROXY must be set")
     return proxy
   }
 
-  function getApiKey() {
-    var key = String(window.CAPI_KEY || "").trim()
+  function getApiKey(): string {
+    const key = String(window.CAPI_KEY || "").trim()
     if (!key) throw new Error("CAPI_KEY must be set")
     return key
   }
 
-  async function sha256(str) {
+  async function sha256(str: string): Promise<string | undefined> {
     if (!str) return undefined
-    var normalized = String(str).trim().toLowerCase()
-    var buf = await crypto.subtle.digest(
+    const normalized = String(str).trim().toLowerCase()
+    const buf = await crypto.subtle.digest(
       "SHA-256",
       new TextEncoder().encode(normalized),
     )
+
     return Array.from(new Uint8Array(buf))
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("")
   }
 
-  function eventId() {
-    return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c) =>
-      (
-        c ^
-        (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))
-      ).toString(16),
-    )
+  function eventId(): string {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (ch) => {
+      const random = crypto.getRandomValues(new Uint8Array(1))[0] & 15
+      const value = ch === "x" ? random : (random & 3) | 8
+      return value.toString(16)
+    })
   }
 
-  function getExternalId() {
-    var key = "_fbcapi_eid"
-    var match = document.cookie.match(new RegExp("(?:^|; )" + key + "=([^;]*)"))
+  function getExternalId(): string {
+    const key = "_fbcapi_eid"
+    const match = document.cookie.match(new RegExp("(?:^|; )" + key + "=([^;]*)"))
     if (match) return match[1]
-    var id = Math.random().toString(36).slice(2) + Date.now().toString(36)
+
+    const id = Math.random().toString(36).slice(2) + Date.now().toString(36)
     document.cookie =
       key + "=" + id + "; max-age=31536000; path=/; SameSite=Lax"
     return id
   }
 
-  async function fetchAccessToken(forceRefresh) {
+  async function fetchAccessToken(forceRefresh: boolean): Promise<string> {
     if (
       !forceRefresh &&
       accessToken &&
@@ -91,7 +144,7 @@
     }
 
     pendingTokenPromise = (async function () {
-      var res = await fetch(resolveAuthUrl(), {
+      const res = await fetch(resolveAuthUrl(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -100,18 +153,17 @@
         body: JSON.stringify({ event_source_url: window.location.href }),
       })
 
-      var body = await res.json().catch(function () {
-        return {}
-      })
+      const bodyRaw = await res.json().catch(() => ({}))
+      const body: AuthResponseBody = isRecord(bodyRaw) ? bodyRaw : {}
 
-      if (!res.ok || !body.access_token) {
-        var message =
-          body && body.error ? body.error : "Failed to get event access token"
+      const tokenValue = asString(body.access_token) ?? ""
+      if (!res.ok || !tokenValue) {
+        const message = asString(body.error) ?? "Failed to get event access token"
         throw new Error(message)
       }
 
-      var expiresMs = Date.parse(body.expires_at)
-      accessToken = body.access_token
+      const expiresMs = Date.parse(asString(body.expires_at) ?? "")
+      accessToken = tokenValue
       accessTokenExpiresAtMs = Number.isFinite(expiresMs)
         ? expiresMs
         : Date.now() + 60 * 1000
@@ -126,7 +178,10 @@
     }
   }
 
-  async function sendEventRequest(payload, token) {
+  async function sendEventRequest(
+    payload: Record<string, unknown>,
+    token: string,
+  ): Promise<Response> {
     return fetch(getProxyUrl(), {
       method: "POST",
       headers: {
@@ -138,35 +193,45 @@
     })
   }
 
-  /**
-   * @param {string}  eventName
-   * @param {object}  customData  { value, currency, content_ids, … }
-   * @param {object}  userData    { em, ph, fn, ln }  - hashed automatically
-   * @param {object}  opts        { test_event_code }
-   */
-  window.fbCapi = async function (eventName, customData, userData, opts) {
-    opts = opts || {}
-    userData = userData || {}
-    customData = customData || {}
-
-    var ud = {
+  window.fbCapi = async function (
+    eventName: string,
+    customData: CustomData = {},
+    userData: UserDataInput = {},
+    opts: FbCapiOptions = {},
+  ): Promise<unknown> {
+    const ud: FbUserDataPayload = {
       external_id: [getExternalId()],
       client_user_agent: navigator.userAgent,
     }
 
-    if (userData.em || userData.email)
-      ud.em = [await sha256(userData.em || userData.email)]
-    if (userData.ph || userData.phone)
-      ud.ph = [await sha256(userData.ph || userData.phone)]
-    if (userData.fn) ud.fn = [await sha256(userData.fn)]
-    if (userData.ln) ud.ln = [await sha256(userData.ln)]
+    const email = userData.em || userData.email
+    if (email) {
+      const hashed = await sha256(email)
+      if (hashed) ud.em = [hashed]
+    }
 
-    var fbcMatch = document.cookie.match(/(?:^|; )_fbc=([^;]*)/)
-    var fbpMatch = document.cookie.match(/(?:^|; )_fbp=([^;]*)/)
+    const phone = userData.ph || userData.phone
+    if (phone) {
+      const hashed = await sha256(phone)
+      if (hashed) ud.ph = [hashed]
+    }
+
+    if (userData.fn) {
+      const hashed = await sha256(userData.fn)
+      if (hashed) ud.fn = [hashed]
+    }
+
+    if (userData.ln) {
+      const hashed = await sha256(userData.ln)
+      if (hashed) ud.ln = [hashed]
+    }
+
+    const fbcMatch = document.cookie.match(/(?:^|; )_fbc=([^;]*)/)
+    const fbpMatch = document.cookie.match(/(?:^|; )_fbp=([^;]*)/)
     if (fbcMatch) ud.fbc = fbcMatch[1]
     if (fbpMatch) ud.fbp = fbpMatch[1]
 
-    var payload = {
+    const payload: Record<string, unknown> = {
       data: [
         {
           event_name: eventName,
@@ -183,32 +248,30 @@
     if (opts.test_event_code) payload.test_event_code = opts.test_event_code
 
     try {
-      var token = await fetchAccessToken(false)
-      var res = await sendEventRequest(payload, token)
+      let token = await fetchAccessToken(false)
+      let res = await sendEventRequest(payload, token)
 
       if (res.status === 401) {
         token = await fetchAccessToken(true)
         res = await sendEventRequest(payload, token)
       }
 
-      var body = await res.json().catch(function () {
-        return {}
-      })
+      const bodyRaw = await res.json().catch(() => ({}))
+      const body: EventResponseBody = isRecord(bodyRaw) ? bodyRaw : {}
 
       if (!res.ok) {
-        var err = body && body.error ? body.error : "Event request failed"
+        const err = asString(body.error) ?? "Event request failed"
         throw new Error(err)
       }
 
-      return body
+      return bodyRaw
     } catch (err) {
       console.warn("[fbCapi] Failed:", err)
       throw err
     }
   }
 
-  // Auto PageView
-  window.fbCapi("PageView").catch(function () {
+  window.fbCapi("PageView").catch(() => {
     // suppress unhandled rejection on load
   })
 })(window)

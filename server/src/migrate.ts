@@ -1,11 +1,11 @@
 "use strict"
 /**
  * migrate.ts - creates tables if they don't exist.
- * Run with:  npm run migrate
  */
 
 require("dotenv").config()
-const db = require("./db")
+
+import db from "./db"
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS sites (
@@ -146,16 +146,14 @@ CREATE INDEX IF NOT EXISTS idx_admin_tokens_expires_at
   ON admin_tokens(expires_at);
 `
 
-async function migrate() {
+async function migrate(): Promise<void> {
   const schema = db.driver === "postgres" ? SCHEMA_PG : SCHEMA
   await db.exec(schema)
   console.log(`✅  Migration complete (driver: ${db.driver})`)
   process.exit(0)
 }
 
-migrate().catch((err) => {
+migrate().catch((err: unknown) => {
   console.error("Migration failed:", err)
   process.exit(1)
 })
-
-export {}

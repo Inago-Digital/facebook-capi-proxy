@@ -2,20 +2,27 @@
 
 require("dotenv").config()
 
-const express = require("express")
-const helmet = require("helmet")
-const cors = require("cors")
-const rateLimit = require("express-rate-limit")
-const path = require("path")
+import express, {
+  type NextFunction,
+  type Request,
+  type Response,
+} from "express"
+import helmet from "helmet"
+import path from "path"
+import rateLimit from "express-rate-limit"
 
-const adminRouter = require("./admin")
-const eventsRouter = require("./events")
+import adminRouter from "./admin"
+import eventsRouter from "./events"
+
+type CorsMiddleware = (req: Request, res: Response, next: NextFunction) => void
+type CorsFactory = (options: unknown) => CorsMiddleware
+const cors = require("cors") as CorsFactory
 
 const app = express()
-const PORT = process.env.PORT || 3000
+const PORT = Number.parseInt(process.env.PORT ?? "", 10) || 3000
 const fbCapiClientPath = path.join(__dirname, "./fb-capi-client.js")
 
-function getAdminAllowedOrigins() {
+function getAdminAllowedOrigins(): string[] {
   return (process.env.ADMIN_ALLOWED_ORIGINS || "")
     .split(",")
     .map((origin) => origin.trim())
@@ -25,7 +32,10 @@ function getAdminAllowedOrigins() {
 const adminAllowedOrigins = getAdminAllowedOrigins()
 
 const adminCors = cors({
-  origin(origin, cb) {
+  origin(
+    origin: string | undefined,
+    cb: (err: Error | null, allow?: boolean) => void,
+  ) {
     if (!origin) {
       return cb(null, true)
     }
@@ -48,7 +58,6 @@ const publicOptionsCors = cors({
   credentials: false,
 })
 
-// ── Security headers ──────────────────────────────────────────────────────────
 app.set("trust proxy", 1)
 app.use(
   helmet({
@@ -63,48 +72,48 @@ app.use(
 )
 
 app.options("/fb-capi-client.js", publicOptionsCors)
-app.get("/fb-capi-client.js", publicOptionsCors, (_req, res) => {
-  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin")
-  res.sendFile(fbCapiClientPath)
-})
+app.get(
+  "/fb-capi-client.js",
+  publicOptionsCors,
+  (_req: Request, res: Response) => {
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin")
+    res.sendFile(fbCapiClientPath)
+  },
+)
 
 app.options("/health", publicOptionsCors)
-app.get("/health", publicOptionsCors, (_req, res) =>
+app.get("/health", publicOptionsCors, (_req: Request, res: Response) =>
   res.json({ status: "ok", ts: new Date().toISOString() }),
 )
 
 app.options("/admin/*", adminCors)
 
-// ── Body parser ───────────────────────────────────────────────────────────────
 app.use(express.json({ limit: "64kb" }))
 
-// ── Rate limiting on /event ───────────────────────────────────────────────────
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX, 10) || 200,
+  max: Number.parseInt(process.env.RATE_LIMIT_MAX ?? "", 10) || 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please slow down." },
 })
 app.use("/event", limiter)
 
-// ── Routes ────────────────────────────────────────────────────────────────────
 app.use("/event", eventsRouter)
 app.use("/admin", adminCors, adminRouter)
 
-app.use((_req, res) => res.status(404).json({ error: "Not found" }))
+app.use((_req: Request, res: Response) =>
+  res.status(404).json({ error: "Not found" }),
+)
 
-app.use((err, _req, res, _next) => {
+app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error("Unhandled error:", err)
   res.status(500).json({ error: "Internal server error" })
 })
 
-// ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`FB CAPI Proxy running on port ${PORT}`)
   console.log(`Driver: ${process.env.DB_DRIVER || "sqlite"}`)
 })
 
-module.exports = app
-
-export {}
+export default app

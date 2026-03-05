@@ -1,24 +1,28 @@
 "use strict"
 
-const crypto = require("crypto")
+import crypto from "crypto"
+import type { NextFunction, Request, Response } from "express"
 
-const db = require("./db")
+import db from "./db"
+import type { AdminTokenRow, IssuedTokenPair } from "./types"
 
-const TOKEN_TYPE_ACCESS = "access"
-const TOKEN_TYPE_REFRESH = "refresh"
+const TOKEN_TYPE_ACCESS = "access" as const
+const TOKEN_TYPE_REFRESH = "refresh" as const
+
+type TokenType = typeof TOKEN_TYPE_ACCESS | typeof TOKEN_TYPE_REFRESH
 
 const DEFAULT_ACCESS_TTL_MINUTES = 15
 const DEFAULT_REFRESH_TTL_DAYS = 7
 
-function hashForCompare(value) {
+function hashForCompare(value: string): Buffer {
   return crypto.createHash("sha256").update(value, "utf8").digest()
 }
 
-function hashToken(token) {
+function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token, "utf8").digest("hex")
 }
 
-function verifyAdminSecret(candidate) {
+export function verifyAdminSecret(candidate: string): boolean {
   const configured = process.env.ADMIN_SECRET
   if (
     typeof configured !== "string" ||
@@ -34,15 +38,12 @@ function verifyAdminSecret(candidate) {
   return crypto.timingSafeEqual(candidateHash, configuredHash)
 }
 
-function getPositiveIntEnv(name, fallback) {
-  const parsed = parseInt(process.env[name], 10)
-  if (Number.isFinite(parsed) && parsed > 0) {
-    return parsed
-  }
-  return fallback
+function getPositiveIntEnv(name: string, fallback: number): number {
+  const parsed = Number.parseInt(process.env[name] ?? "", 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
 }
 
-function getAccessTtlMs() {
+function getAccessTtlMs(): number {
   const minutes = getPositiveIntEnv(
     "ADMIN_ACCESS_TTL_MINUTES",
     DEFAULT_ACCESS_TTL_MINUTES,
@@ -50,16 +51,16 @@ function getAccessTtlMs() {
   return minutes * 60 * 1000
 }
 
-function getRefreshTtlMs() {
+function getRefreshTtlMs(): number {
   const days = getPositiveIntEnv("ADMIN_REFRESH_TTL_DAYS", DEFAULT_REFRESH_TTL_DAYS)
   return days * 24 * 60 * 60 * 1000
 }
 
-function generateToken() {
+function generateToken(): string {
   return crypto.randomBytes(32).toString("base64url")
 }
 
-function parseIsoDate(value) {
+function parseIsoDate(value: unknown): string | null {
   if (value instanceof Date) {
     return value.toISOString()
   }
@@ -73,20 +74,25 @@ function parseIsoDate(value) {
   return new Date(parsed).toISOString()
 }
 
-function isExpired(isoDate) {
+function isExpired(isoDate: string): boolean {
   const parsed = Date.parse(isoDate)
   return !Number.isFinite(parsed) || parsed <= Date.now()
 }
 
-function getBearerToken(req) {
-  const auth = req.headers.authorization || ""
+function getBearerToken(req: Request): string {
+  const raw = req.headers.authorization
+  const auth = Array.isArray(raw) ? raw[0] ?? "" : raw ?? ""
   if (!auth.startsWith("Bearer ")) {
     return ""
   }
   return auth.slice(7).trim()
 }
 
-async function cleanupTokenRows() {
+function getErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
+}
+
+async function cleanupTokenRows(): Promise<void> {
   const nowIso = new Date().toISOString()
   await db.run(
     `DELETE FROM admin_tokens
@@ -95,7 +101,11 @@ async function cleanupTokenRows() {
   )
 }
 
-async function insertTokenRow(sessionId, tokenType, ttlMs) {
+async function insertTokenRow(
+  sessionId: string,
+  tokenType: TokenType,
+  ttlMs: number,
+): Promise<{ id: string; token: string; expiresAt: string }> {
   const token = generateToken()
   const id = crypto.randomUUID()
   const expiresAt = new Date(Date.now() + ttlMs).toISOString()
@@ -113,7 +123,9 @@ async function insertTokenRow(sessionId, tokenType, ttlMs) {
   }
 }
 
-async function issueTokenPair(existingSessionId = null) {
+export async function issueTokenPair(
+  existingSessionId: string | null = null,
+): Promise<IssuedTokenPair> {
   const sessionId = existingSessionId || crypto.randomUUID()
 
   const access = await insertTokenRow(sessionId, TOKEN_TYPE_ACCESS, getAccessTtlMs())
@@ -134,12 +146,24 @@ async function issueTokenPair(existingSessionId = null) {
   }
 }
 
-async function getValidTokenRecord(rawToken, tokenType) {
+type ValidTokenRecord = {
+  id: string
+  sessionId: string
+  tokenType: TokenType
+  expiresAt: string
+}
+
+async function getValidTokenRecord(
+  rawToken: string,
+  tokenType: TokenType,
+): Promise<ValidTokenRecord | null> {
   if (!rawToken || typeof rawToken !== "string") {
     return null
   }
 
-  const row = await db.get(
+  const row = await db.get<
+    Pick<AdminTokenRow, "id" | "session_id" | "token_type" | "expires_at" | "revoked_at">
+  >(
     `SELECT id, session_id, token_type, expires_at, revoked_at
      FROM admin_tokens
      WHERE token_hash = ? AND token_type = ?`,
@@ -158,12 +182,12 @@ async function getValidTokenRecord(rawToken, tokenType) {
   return {
     id: row.id,
     sessionId: row.session_id,
-    tokenType: row.token_type,
+    tokenType,
     expiresAt,
   }
 }
 
-async function revokeTokenById(id) {
+async function revokeTokenById(id: string): Promise<void> {
   await db.run(
     `UPDATE admin_tokens
      SET revoked_at = ?
@@ -172,7 +196,7 @@ async function revokeTokenById(id) {
   )
 }
 
-async function revokeSessionTokens(sessionId) {
+async function revokeSessionTokens(sessionId: string): Promise<void> {
   await db.run(
     `UPDATE admin_tokens
      SET revoked_at = ?
@@ -181,7 +205,9 @@ async function revokeSessionTokens(sessionId) {
   )
 }
 
-async function rotateRefreshToken(rawRefreshToken) {
+export async function rotateRefreshToken(
+  rawRefreshToken: string,
+): Promise<IssuedTokenPair | null> {
   const refresh = await getValidTokenRecord(rawRefreshToken, TOKEN_TYPE_REFRESH)
   if (!refresh) {
     return null
@@ -193,12 +219,14 @@ async function rotateRefreshToken(rawRefreshToken) {
   return issueTokenPair(refresh.sessionId)
 }
 
-async function logoutWithRefreshToken(rawRefreshToken) {
+export async function logoutWithRefreshToken(
+  rawRefreshToken: string,
+): Promise<{ ok: true }> {
   if (!rawRefreshToken || typeof rawRefreshToken !== "string") {
     return { ok: true }
   }
 
-  const row = await db.get(
+  const row = await db.get<Pick<AdminTokenRow, "session_id">>(
     `SELECT session_id
      FROM admin_tokens
      WHERE token_hash = ?`,
@@ -215,7 +243,11 @@ async function logoutWithRefreshToken(rawRefreshToken) {
   return { ok: true }
 }
 
-async function requireAccessToken(req, res, next) {
+export async function requireAccessToken(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<Response | void> {
   try {
     const accessToken = getBearerToken(req)
     const access = await getValidTokenRecord(accessToken, TOKEN_TYPE_ACCESS)
@@ -234,16 +266,6 @@ async function requireAccessToken(req, res, next) {
     return next()
   } catch (err) {
     console.error("Access token middleware failed:", err)
-    return res.status(500).json({ error: "Internal server error" })
+    return res.status(500).json({ error: getErrorMessage(err) })
   }
 }
-
-module.exports = {
-  issueTokenPair,
-  logoutWithRefreshToken,
-  requireAccessToken,
-  rotateRefreshToken,
-  verifyAdminSecret,
-}
-
-export {}
