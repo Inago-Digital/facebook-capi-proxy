@@ -48,6 +48,9 @@ npm start
 | `EVENT_REQUIRE_EVENT_SOURCE_URL` | `true` | Require event `event_source_url` |
 | `EVENT_TOKEN_BIND_IP` | `false` | Bind event token to caller IP |
 | `FB_CAPI_URL` | `https://graph.facebook.com/v19.0` | Facebook CAPI base URL |
+| `FB_CAPI_TIMEOUT_MS` | `8000` | Timeout for each outbound CAPI request |
+| `FB_CAPI_TIMEOUT_RETRIES` | `1` | Retries only for timeout failures |
+| `FB_CAPI_TIMEOUT_RETRY_DELAY_MS` | `250` | Delay between timeout retries |
 
 ## Admin Auth API
 

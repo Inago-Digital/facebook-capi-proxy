@@ -34,6 +34,15 @@ const router = express.Router()
 
 const FB_CAPI_URL =
   process.env.FB_CAPI_URL || "https://graph.facebook.com/v19.0"
+const FB_CAPI_TIMEOUT_MS = getPositiveIntEnv("FB_CAPI_TIMEOUT_MS", 8000)
+const FB_CAPI_TIMEOUT_RETRIES = getNonNegativeIntEnv(
+  "FB_CAPI_TIMEOUT_RETRIES",
+  1,
+)
+const FB_CAPI_TIMEOUT_RETRY_DELAY_MS = getNonNegativeIntEnv(
+  "FB_CAPI_TIMEOUT_RETRY_DELAY_MS",
+  250,
+)
 const EVENT_ACCESS_TTL_SECONDS = getPositiveIntEnv(
   "EVENT_ACCESS_TTL_SECONDS",
   300,
@@ -75,6 +84,11 @@ type SiteScopedRequest = Request & {
 function getPositiveIntEnv(name: string, fallback: number): number {
   const parsed = Number.parseInt(process.env[name] ?? "", 10)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
+function getNonNegativeIntEnv(name: string, fallback: number): number {
+  const parsed = Number.parseInt(process.env[name] ?? "", 10)
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback
 }
 
 function getBooleanEnv(name: string, fallback: boolean): boolean {
@@ -153,6 +167,27 @@ function coerceBoolean(value: unknown): boolean {
 
 function getErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
+}
+
+function redactAccessToken(input: string): string {
+  return input.replace(/([?&]access_token=)[^&#\s]+/gi, "$1[REDACTED]")
+}
+
+function getSafeErrorMessage(err: unknown): string {
+  return redactAccessToken(getErrorMessage(err))
+}
+
+function isFetchTimeoutError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  const maybeFetchError = err as Error & { type?: string }
+  return (
+    maybeFetchError.type === "request-timeout" ||
+    maybeFetchError.message.toLowerCase().includes("network timeout at:")
+  )
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -730,28 +765,61 @@ router.post(
     }
 
     const fbUrl = `${FB_CAPI_URL}/${ctx.site.pixel_id}/events?access_token=${ctx.site.fb_token}`
+    const fbPayloadJson = JSON.stringify(fbPayload)
+    const fbMaxAttempts = 1 + FB_CAPI_TIMEOUT_RETRIES
+    const fbStartedAt = Date.now()
 
     let fbStatus: number | null = null
     let fbBody: unknown = null
     let logError: string | null = null
+    let fbAttempts = 0
+    let fbElapsedMs: number | null = null
 
     try {
-      const fbRes = await fetch(fbUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(fbPayload),
-        timeout: 8000,
-      })
+      while (fbAttempts < fbMaxAttempts) {
+        fbAttempts += 1
+        try {
+          const fbRes = await fetch(fbUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: fbPayloadJson,
+            timeout: FB_CAPI_TIMEOUT_MS,
+          })
 
-      fbStatus = fbRes.status
-      fbBody = await fbRes.json()
+          fbStatus = fbRes.status
+          fbBody = await fbRes.json()
+          fbElapsedMs = Date.now() - fbStartedAt
 
-      await storeEventIds(ctx.site.id, eventIds)
+          console.info(
+            `[${ctx.site.name}] FB CAPI responded ${fbStatus} in ${fbElapsedMs}ms (attempts=${fbAttempts})`,
+          )
 
-      return res.status(fbStatus).json(fbBody)
+          await storeEventIds(ctx.site.id, eventIds)
+
+          return res.status(fbStatus).json(fbBody)
+        } catch (err) {
+          if (!isFetchTimeoutError(err) || fbAttempts >= fbMaxAttempts) {
+            throw err
+          }
+
+          const elapsedMs = Date.now() - fbStartedAt
+          console.warn(
+            `[${ctx.site.name}] FB CAPI timeout on attempt ${fbAttempts}/${fbMaxAttempts} after ${elapsedMs}ms; retrying in ${FB_CAPI_TIMEOUT_RETRY_DELAY_MS}ms`,
+          )
+          if (FB_CAPI_TIMEOUT_RETRY_DELAY_MS > 0) {
+            await sleep(FB_CAPI_TIMEOUT_RETRY_DELAY_MS)
+          }
+        }
+      }
+
+      throw new Error("Failed to complete Facebook CAPI request")
     } catch (err) {
-      logError = getErrorMessage(err)
-      console.error(`[${ctx.site.name}] FB CAPI request failed:`, logError)
+      fbElapsedMs = fbElapsedMs ?? Date.now() - fbStartedAt
+      logError = getSafeErrorMessage(err)
+      console.error(
+        `[${ctx.site.name}] FB CAPI request failed in ${fbElapsedMs}ms (attempts=${fbAttempts}):`,
+        logError,
+      )
       return res
         .status(502)
         .json({ error: "Failed to reach Facebook CAPI", details: logError })
