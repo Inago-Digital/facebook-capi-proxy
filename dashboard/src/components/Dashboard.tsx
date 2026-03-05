@@ -81,6 +81,8 @@ export function Dashboard() {
     logsLoadError,
     setLogsLoadError,
     loadLogs,
+    loadMoreLogs,
+    totalLogsCount,
   } = useLogs(apiFetch)
 
   const {
@@ -230,6 +232,7 @@ export function Dashboard() {
               isLoading={isLogsLoading}
               hasError={logsLoadError}
               rows={logRows}
+              totalLogsCount={totalLogsCount}
               onSelectedSiteChange={setLogsSiteId}
               onLimitChange={(next) => {
                 const safeLimit = Math.max(1, Math.min(500, next))
@@ -237,6 +240,9 @@ export function Dashboard() {
               }}
               onLoad={() => {
                 void loadLogs()
+              }}
+              onLoadMore={() => {
+                void loadMoreLogs()
               }}
             />
 

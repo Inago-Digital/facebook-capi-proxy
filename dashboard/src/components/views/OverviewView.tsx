@@ -168,7 +168,7 @@ export function OverviewView({
                           className="inline-flex cursor-pointer items-center gap-1.5 overflow-hidden rounded-[3px] border border-border bg-bg px-2 py-[3px] font-mono text-[11px] text-textDim transition-all duration-150 hover:border-accent hover:text-text"
                           onClick={() => onCopyKey(apiKey)}
                         >
-                          <span className="truncate">{apiKey}</span>
+                          <span className="max-w-32 truncate">{apiKey}</span>
                           <Copy size={14} className="text-textDim" />
                         </span>
                       </Tooltip>

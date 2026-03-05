@@ -42,6 +42,7 @@ type UpdateSiteBody = {
 
 type SiteStatsQuery = {
   limit?: string
+  cursor?: string
 }
 
 function generateApiKey(): string {
@@ -82,9 +83,13 @@ function toDbActive(value: boolean): boolean | 0 | 1 {
   return value ? 1 : 0
 }
 
-type SiteWithMaskedToken = Omit<SiteRow, "fb_token"> & { fb_token: string | null }
+type SiteWithMaskedToken = Omit<SiteRow, "fb_token"> & {
+  fb_token: string | null
+}
 
-function stripToken(site: SiteRow | undefined): SiteWithMaskedToken | undefined {
+function stripToken(
+  site: SiteRow | undefined,
+): SiteWithMaskedToken | undefined {
   if (!site) return undefined
   return {
     ...site,
@@ -161,22 +166,29 @@ router.post(
   },
 )
 
-router.get("/auth/me", requireAccessToken, (req: Request, res: Response): Response => {
-  if (!req.adminAuth) {
-    return res.status(401).json({ error: "Unauthorized" })
-  }
+router.get(
+  "/auth/me",
+  requireAccessToken,
+  (req: Request, res: Response): Response => {
+    if (!req.adminAuth) {
+      return res.status(401).json({ error: "Unauthorized" })
+    }
 
-  return res.json({
-    authenticated: true,
-    access_expires_at: req.adminAuth.accessExpiresAt,
-  })
-})
+    return res.json({
+      authenticated: true,
+      access_expires_at: req.adminAuth.accessExpiresAt,
+    })
+  },
+)
 
 router.use(requireAccessToken)
 
 router.post(
   "/sites",
-  async (req: Request<{}, {}, CreateSiteBody>, res: Response): Promise<Response> => {
+  async (
+    req: Request<{}, {}, CreateSiteBody>,
+    res: Response,
+  ): Promise<Response> => {
     try {
       const name = readRequiredString(req.body?.name)
       const domain = readRequiredString(req.body?.domain)
@@ -199,9 +211,14 @@ router.post(
         [id, name, normalizeDomain(domain), apiKey, pixelId, fbToken, note],
       )
 
-      return res
-        .status(201)
-        .json({ id, name, domain: normalizeDomain(domain), pixel_id: pixelId, api_key: apiKey, note })
+      return res.status(201).json({
+        id,
+        name,
+        domain: normalizeDomain(domain),
+        pixel_id: pixelId,
+        api_key: apiKey,
+        note,
+      })
     } catch (err) {
       console.error(err)
       return res.status(500).json({ error: getErrorMessage(err) })
@@ -209,17 +226,20 @@ router.post(
   },
 )
 
-router.get("/sites", async (_req: Request, res: Response): Promise<Response> => {
-  try {
-    const sites = await db.all<SiteRow>(
-      "SELECT * FROM sites ORDER BY created_at DESC",
-      [],
-    )
-    return res.json(sites.map((site) => stripToken(site)))
-  } catch (err) {
-    return res.status(500).json({ error: getErrorMessage(err) })
-  }
-})
+router.get(
+  "/sites",
+  async (_req: Request, res: Response): Promise<Response> => {
+    try {
+      const sites = await db.all<SiteRow>(
+        "SELECT * FROM sites ORDER BY created_at DESC",
+        [],
+      )
+      return res.json(sites.map((site) => stripToken(site)))
+    } catch (err) {
+      return res.status(500).json({ error: getErrorMessage(err) })
+    }
+  },
+)
 
 router.get(
   "/sites/:id",
@@ -274,7 +294,9 @@ router.patch(
 
         if (key === "note") {
           if (raw !== null && typeof raw !== "string") {
-            return res.status(400).json({ error: "note must be a string or null" })
+            return res
+              .status(400)
+              .json({ error: "note must be a string or null" })
           }
 
           const note = typeof raw === "string" ? raw.trim() || null : null
@@ -360,13 +382,30 @@ router.get(
   ): Promise<Response> => {
     try {
       const requestedLimit = Number.parseInt(req.query.limit ?? "", 10)
-      const limit = Math.min(Number.isFinite(requestedLimit) ? requestedLimit : 50, 500)
-
-      const rows = await db.all(
-        `SELECT * FROM event_log WHERE site_id = ? ORDER BY id DESC LIMIT ?`,
-        [req.params.id, limit],
+      const limit = Math.min(
+        Number.isFinite(requestedLimit) ? requestedLimit : 50,
+        500,
       )
-      return res.json(rows)
+      const cursor = req.query.cursor
+
+      let rows
+      if (cursor) {
+        rows = await db.all(
+          `SELECT * FROM event_log WHERE site_id = ? AND id < ? ORDER BY id DESC LIMIT ?`,
+          [req.params.id, cursor, limit],
+        )
+      } else {
+        rows = await db.all(
+          `SELECT * FROM event_log WHERE site_id = ? ORDER BY id DESC LIMIT ?`,
+          [req.params.id, limit],
+        )
+      }
+      const countResult = await db.get(
+        `SELECT COUNT(*) as count FROM event_log WHERE site_id = ?`,
+        [req.params.id],
+      )
+      const totalCount = countResult?.count ?? 0
+      return res.json({ rows, totalCount })
     } catch (err) {
       return res.status(500).json({ error: getErrorMessage(err) })
     }

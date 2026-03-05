@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 
 import type { Site } from "../utils/types"
 import { useToast } from "../context/ToastContext"
-import { resolveApiBaseUrl } from "../config/api-base"
+import { useAdminApi } from "../context/AdminApiContext"
 
 const DEFAULT_SNIPPET_USAGE = `// PageView fires automatically on load
 
@@ -22,17 +22,19 @@ fbCapi('Lead', {}, {
 // Test mode
 fbCapi('ViewContent', {}, {}, {
   test_event_code: 'TEST12345'
-});`
+});
+`
 
 export function useSnippet(sites: Site[]) {
   const { addToast } = useToast()
+  const { baseUrl } = useAdminApi()
 
   const [snippetSiteId, setSnippetSiteId] = useState("")
   const [snippetTag, setSnippetTag] = useState("Loading…")
   const [snippetUsage, setSnippetUsage] = useState("Loading…")
 
   const buildSnippet = useCallback(() => {
-    const generatedUrl = `${resolveApiBaseUrl()}/event`
+    const generatedUrl = `${baseUrl}/event`
     const selectedSite = sites.find((site) => site.id === snippetSiteId)
     const apiKey = selectedSite?.api_key || "capi_YOUR_KEY_HERE"
 
@@ -41,7 +43,7 @@ export function useSnippet(sites: Site[]) {
   var CAPI_PROXY = '${generatedUrl}';
   var CAPI_KEY   = '${apiKey}';
 </script>
-<script src="${resolveApiBaseUrl()}/fb-capi-client.js"></script>`)
+<script src="${baseUrl}/fb-capi-client.js"></script>`)
 
     setSnippetUsage(DEFAULT_SNIPPET_USAGE)
   }, [sites, snippetSiteId])

@@ -14,12 +14,18 @@ export function useLogs(apiFetch: ApiFetch) {
 
   const [logsSiteId, setLogsSiteId] = useState("")
   const [logsLimit, setLogsLimit] = useState(50)
+  const [totalLogsCount, setTotalLogsCount] = useState<number | null>(null)
   const [logRows, setLogRows] = useState<SiteLog[]>([])
   const [isLogsLoading, setIsLogsLoading] = useState(false)
   const [logsLoadError, setLogsLoadError] = useState(false)
 
   const loadLogs = useCallback(
-    async (siteIdOverride?: string, limitOverride?: number) => {
+    async (
+      siteIdOverride?: string,
+      limitOverride?: number,
+      cursor?: number,
+      append = false,
+    ) => {
       const targetSiteId = siteIdOverride ?? logsSiteId
       const targetLimit = limitOverride ?? logsLimit
 
@@ -32,10 +38,13 @@ export function useLogs(apiFetch: ApiFetch) {
       setLogsLoadError(false)
 
       try {
-        const rows = await apiFetch<SiteLog[]>(
-          `/admin/sites/${targetSiteId}/stats?limit=${targetLimit}`,
+        const res = await apiFetch<{ rows: SiteLog[]; totalCount: number }>(
+          `/admin/sites/${targetSiteId}/stats?limit=${targetLimit}${cursor ? `&cursor=${cursor}` : ""}`,
         )
-        setLogRows(rows)
+        setLogRows((prevRows) =>
+          append ? [...prevRows, ...res.rows] : res.rows,
+        )
+        setTotalLogsCount(res.totalCount)
       } catch (error) {
         setLogRows([])
         setLogsLoadError(true)
@@ -46,6 +55,15 @@ export function useLogs(apiFetch: ApiFetch) {
     },
     [addToast, apiFetch, logsLimit, logsSiteId],
   )
+
+  const loadMoreLogs = useCallback(() => {
+    if (logRows.length === 0) return
+
+    const lastLog = logRows[logRows.length - 1]
+    const lastId = lastLog.id
+
+    loadLogs(logsSiteId, logsLimit, lastId, true)
+  }, [loadLogs, logRows, logsLimit, logsSiteId])
 
   return {
     logsSiteId,
@@ -58,5 +76,7 @@ export function useLogs(apiFetch: ApiFetch) {
     logsLoadError,
     setLogsLoadError,
     loadLogs,
+    loadMoreLogs,
+    totalLogsCount,
   }
 }

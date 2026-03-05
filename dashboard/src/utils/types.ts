@@ -14,6 +14,7 @@ export interface Site {
 }
 
 export interface SiteLog {
+  id: number
   created_at?: string | null
   event_name?: string | null
   fb_status?: number | null

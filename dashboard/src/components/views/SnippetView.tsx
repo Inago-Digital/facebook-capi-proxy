@@ -6,6 +6,7 @@ import { Field, FieldLabel } from "../ui/Field"
 import { PageHeader } from "../ui/PageHeader"
 import hljs from "highlight.js"
 import { Select } from "../ui/Select"
+import { Copy } from "lucide-react"
 
 interface SnippetViewProps {
   visible: boolean
@@ -62,6 +63,7 @@ export function SnippetView({
         <CardHeader>
           <CardTitle>Script tag</CardTitle>
           <Button variant="ghost" size="sm" onClick={onCopyTag}>
+            <Copy size={14} />
             Copy
           </Button>
         </CardHeader>

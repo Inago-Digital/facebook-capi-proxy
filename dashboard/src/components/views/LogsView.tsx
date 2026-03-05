@@ -4,6 +4,7 @@ import type { Site, SiteLog } from "../../utils/types"
 import { Badge } from "../ui/Badge"
 import { Button } from "../ui/Button"
 import { Card, CardHeader, CardTitle } from "../ui/Card"
+import { OverflowTooltip } from "../ui/OverflowTooltip"
 import { PageHeader } from "../ui/PageHeader"
 import { Select } from "../ui/Select"
 import { Spinner } from "../ui/Spinner"
@@ -24,9 +25,11 @@ interface LogsViewProps {
   isLoading: boolean
   hasError: boolean
   rows: SiteLog[]
+  totalLogsCount: number | null
   onSelectedSiteChange: (siteId: string) => void
   onLimitChange: (limit: number) => void
   onLoad: () => void
+  onLoadMore: () => void
 }
 
 const limitOptions = [
@@ -45,9 +48,11 @@ export function LogsView({
   isLoading,
   hasError,
   rows,
+  totalLogsCount,
   onSelectedSiteChange,
   onLimitChange,
   onLoad,
+  onLoadMore,
 }: LogsViewProps) {
   const emptyMessage = !isConnected
     ? "Connect to load logs"
@@ -146,7 +151,12 @@ export function LogsView({
                       {row.ip || "-"}
                     </TableCell>
                     <TableCell className="text-[11px] text-danger">
-                      {row.error || ""}
+                      <OverflowTooltip
+                        content={row.error || ""}
+                        className="max-w-64"
+                      >
+                        {row.error || "-"}
+                      </OverflowTooltip>
                     </TableCell>
                   </TableRow>
                 )
@@ -154,6 +164,19 @@ export function LogsView({
             )}
           </tbody>
         </DataTable>
+
+        <div className="flex flex-col items-center gap-4 px-5 py-3 text-xs text-textDim">
+          {totalLogsCount !== null && (
+            <span>
+              Showing {rows.length} of {totalLogsCount} logs
+            </span>
+          )}
+          {totalLogsCount !== null && rows.length < totalLogsCount && (
+            <Button variant="ghost" size="sm" onClick={onLoadMore}>
+              Load more
+            </Button>
+          )}
+        </div>
       </Card>
     </section>
   )
