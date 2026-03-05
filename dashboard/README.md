@@ -8,16 +8,21 @@ A blazing fast static site built with React, Eleventy, and Tailwind CSS.
 # Install dependencies
 pnpm install
 
-# Configure dashboard API base URL
-cp .env.example .env
-
 # Start development server
 pnpm dev
 ```
 
 Open [http://localhost:8080](http://localhost:8080) to view your site.
 
-`VITE_ADMIN_API_BASE_URL` controls which backend the dashboard calls.
+Dashboard API base URL resolution order:
+
+1. `?server=https://api.example.com` query string
+2. `window.CAPI_ADMIN_API_BASE` from `/assets/config.js`
+3. `<meta name="api-base-url" ...>` (if set at build time)
+4. `VITE_ADMIN_API_BASE_URL` (build-time env)
+5. `window.location.origin`
+
+This means `.env` is optional. For static hosting, set `/assets/config.js` during deployment.
 
 ## Build
 

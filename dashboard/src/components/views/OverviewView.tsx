@@ -1,4 +1,4 @@
-import { Copy, Plus, RotateCw } from "lucide-react"
+import { Copy, Plus, Power, RotateCw } from "lucide-react"
 import { cn } from "../../utils/cn"
 import { isSiteActive } from "../../utils/site"
 import type { Site } from "../../utils/types"
@@ -158,7 +158,8 @@ export function OverviewView({
                     </TableCell>
                     <TableCell>
                       <Badge tone={isActive ? "green" : "red"}>
-                        {isActive ? "active" : "inactive"}
+                        <Power size={10} className="mr-1" />
+                        {isActive ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell>

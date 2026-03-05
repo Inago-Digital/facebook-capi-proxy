@@ -1,4 +1,4 @@
-import { Plus, RotateCw } from "lucide-react"
+import { Plus, Power, RotateCw } from "lucide-react"
 import { cn } from "../../utils/cn"
 import { formatDate, isSiteActive } from "../../utils/site"
 import type { Site } from "../../utils/types"
@@ -95,7 +95,8 @@ export function SitesView({
                     </TableCell>
                     <TableCell>
                       <Badge tone={isActive ? "green" : "red"}>
-                        {isActive ? "active" : "inactive"}
+                        <Power size={10} className="mr-1" />
+                        {isActive ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-textDim">

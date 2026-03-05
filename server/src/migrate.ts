@@ -3,7 +3,9 @@
  * migrate.ts - creates tables if they don't exist.
  */
 
-require("dotenv").config()
+require("dotenv").config({
+  path: require("path").resolve(__dirname, "../.env"),
+})
 
 import db from "./db"
 

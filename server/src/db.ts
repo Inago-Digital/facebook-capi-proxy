@@ -4,7 +4,9 @@
  * db.ts - thin abstraction over SQLite (better-sqlite3) or Postgres (pg).
  */
 
-require("dotenv").config()
+require("dotenv").config({
+  path: require("path").resolve(__dirname, "../.env"),
+})
 
 const driver = (process.env.DB_DRIVER || "sqlite").toLowerCase()
 

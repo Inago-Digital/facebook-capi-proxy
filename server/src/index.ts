@@ -1,6 +1,8 @@
 "use strict"
 
-require("dotenv").config()
+require("dotenv").config({
+  path: require("path").resolve(__dirname, "../.env"),
+})
 
 import express, {
   type NextFunction,
@@ -22,10 +24,21 @@ const app = express()
 const PORT = Number.parseInt(process.env.PORT ?? "", 10) || 3000
 const fbCapiClientPath = path.join(__dirname, "./fb-capi-client.js")
 
+function normalizeOrigin(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) return ""
+
+  try {
+    return new URL(trimmed).origin.toLowerCase()
+  } catch {
+    return trimmed.replace(/\/+$/, "").toLowerCase()
+  }
+}
+
 function getAdminAllowedOrigins(): string[] {
   return (process.env.ADMIN_ALLOWED_ORIGINS || "")
     .split(",")
-    .map((origin) => origin.trim())
+    .map(normalizeOrigin)
     .filter(Boolean)
 }
 
@@ -40,7 +53,7 @@ const adminCors = cors({
       return cb(null, true)
     }
 
-    if (adminAllowedOrigins.includes(origin)) {
+    if (adminAllowedOrigins.includes(normalizeOrigin(origin))) {
       return cb(null, true)
     }
 

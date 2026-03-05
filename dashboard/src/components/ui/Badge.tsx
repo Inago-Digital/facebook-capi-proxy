@@ -9,7 +9,7 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const baseClass =
-  "inline-flex items-center gap-[5px] whitespace-nowrap rounded-[3px] px-2 py-[3px] font-mono text-[11px] before:h-[5px] before:w-[5px] before:rounded-full before:bg-current before:content-['']"
+  "inline-flex items-center gap-[5px] whitespace-nowrap rounded-[3px] px-2 py-[3px] font-mono text-[11px]"
 
 const toneClass: Record<BadgeTone, string> = {
   green: "bg-successDim text-success",
@@ -19,5 +19,7 @@ const toneClass: Record<BadgeTone, string> = {
 }
 
 export function Badge({ tone, className, ...props }: BadgeProps) {
-  return <span className={cn(baseClass, toneClass[tone], className)} {...props} />
+  return (
+    <span className={cn(baseClass, toneClass[tone], className)} {...props} />
+  )
 }

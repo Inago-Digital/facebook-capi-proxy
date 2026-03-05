@@ -4,7 +4,6 @@ import type { Site, SiteLog } from "../../utils/types"
 import { Badge } from "../ui/Badge"
 import { Button } from "../ui/Button"
 import { Card, CardHeader, CardTitle } from "../ui/Card"
-import { TextInput } from "../ui/Input"
 import { PageHeader } from "../ui/PageHeader"
 import { Select } from "../ui/Select"
 import { Spinner } from "../ui/Spinner"
@@ -29,6 +28,13 @@ interface LogsViewProps {
   onLimitChange: (limit: number) => void
   onLoad: () => void
 }
+
+const limitOptions = [
+  { label: "10", value: "10" },
+  { label: "25", value: "25" },
+  { label: "50", value: "50" },
+  { label: "100", value: "100" },
+]
 
 export function LogsView({
   visible,
@@ -79,16 +85,13 @@ export function LogsView({
             className="max-w-96"
           />
 
-          <TextInput
+          <Select
             className="w-20"
-            type="number"
-            value={limit}
-            min={1}
-            max={500}
-            onChange={(event) => {
-              const next = Number.parseInt(event.target.value, 10)
-              onLimitChange(Number.isNaN(next) ? 50 : next)
-            }}
+            value={String(limit)}
+            options={limitOptions}
+            onChange={(value) =>
+              onLimitChange(Number.parseInt(value as string, 10))
+            }
           />
 
           <Button variant="ghost" size="sm" onClick={onLoad}>
