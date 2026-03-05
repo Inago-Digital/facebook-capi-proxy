@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react"
 
-import type { Site, SiteFormState } from "../components/types"
+import type { Site, SiteFormState } from "../utils/types"
 import type { ApiFetch } from "../context/AdminApiContext"
 import { useToast } from "../context/ToastContext"
 

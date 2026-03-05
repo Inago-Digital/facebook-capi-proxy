@@ -8,7 +8,7 @@ import {
   useState,
 } from "react"
 
-import { stripProtocol } from "../components/site-utils"
+import { stripProtocol } from "../utils/site"
 import { resolveApiBaseUrl } from "../config/api-base"
 import { useToast } from "./ToastContext"
 

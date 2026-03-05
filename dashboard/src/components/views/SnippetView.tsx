@@ -1,5 +1,5 @@
 import { cn } from "../../utils/cn"
-import type { Site } from "../types"
+import type { Site } from "../../utils/types"
 import { Button } from "../ui/Button"
 import { Card, CardHeader, CardTitle } from "../ui/Card"
 import { Field, FieldLabel } from "../ui/Field"

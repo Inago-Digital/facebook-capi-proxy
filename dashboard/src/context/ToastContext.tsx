@@ -1,6 +1,12 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react"
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react"
 
-import type { ToastMessage, ToastType } from "../components/types"
+import type { ToastMessage, ToastType } from "../utils/types"
 
 interface ToastContextValue {
   toasts: ToastMessage[]

@@ -1,6 +1,6 @@
 import { Code, Globe, LayoutDashboard, Logs, Activity } from "lucide-react"
 import { cn } from "../utils/cn"
-import type { ViewName } from "./types"
+import type { ViewName } from "../utils/types"
 
 interface SidebarProps {
   activeView: ViewName

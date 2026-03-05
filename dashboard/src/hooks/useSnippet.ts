@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 
-import type { Site } from "../components/types"
+import type { Site } from "../utils/types"
 import { useToast } from "../context/ToastContext"
 import { resolveApiBaseUrl } from "../config/api-base"
 

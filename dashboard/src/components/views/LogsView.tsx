@@ -1,6 +1,6 @@
 import { cn } from "../../utils/cn"
-import { formatDate } from "../site-utils"
-import type { Site, SiteLog } from "../types"
+import { formatDate } from "../../utils/site"
+import type { Site, SiteLog } from "../../utils/types"
 import { Badge } from "../ui/Badge"
 import { Button } from "../ui/Button"
 import { Card, CardHeader, CardTitle } from "../ui/Card"

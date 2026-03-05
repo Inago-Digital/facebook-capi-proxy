@@ -1,6 +1,6 @@
 import { App } from "./components/App.11ty"
 
-const API_BASE_FROM_ENV = "https://capi-proxy.inago.cz"
+const API_BASE = "https://capi-proxy.inago.cz"
 
 export const data = {
   title: "FB CAPI Proxy - Admin",
@@ -21,9 +21,7 @@ export default function Page({
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{title}</title>
         <meta name="description" content={description} />
-        {API_BASE_FROM_ENV ? (
-          <meta name="api-base-url" content={API_BASE_FROM_ENV} />
-        ) : null}
+        <meta name="api-base-url" content={API_BASE} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap"

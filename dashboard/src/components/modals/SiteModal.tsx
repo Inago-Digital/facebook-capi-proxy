@@ -1,5 +1,5 @@
 import { X } from "lucide-react"
-import type { SiteFormState } from "../types"
+import type { SiteFormState } from "../../utils/types"
 import { Button } from "../ui/Button"
 import { Field, FieldHint, FieldLabel } from "../ui/Field"
 import { TextInput } from "../ui/Input"

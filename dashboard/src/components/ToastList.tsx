@@ -1,4 +1,4 @@
-import type { ToastMessage } from "./types"
+import type { ToastMessage } from "../utils/types"
 import { Toast } from "./ui/Toast"
 
 interface ToastListProps {
