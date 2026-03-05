@@ -15,6 +15,7 @@ export default function (eleventyConfig) {
 
   // Copy static assets
   eleventyConfig.addPassthroughCopy({ "src/assets/": "assets/" })
+  eleventyConfig.addPassthroughCopy("CNAME")
 
   // Ignore component and utility files
   eleventyConfig.ignores.add("src/components/**")
