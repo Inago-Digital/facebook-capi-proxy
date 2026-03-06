@@ -150,7 +150,9 @@ export function LogsView({
                     <TableCell className="text-textDim">
                       {row.ip || "-"}
                     </TableCell>
-                    <TableCell className="text-[11px] text-danger">
+                    <TableCell
+                      className={`text-[11px] ${row.error ? "text-danger" : "text-textDim"}`}
+                    >
                       <OverflowTooltip
                         content={row.error || ""}
                         className="max-w-64"
