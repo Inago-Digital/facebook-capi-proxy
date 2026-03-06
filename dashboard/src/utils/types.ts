@@ -37,3 +37,8 @@ export interface ToastMessage {
   type: ToastType
   message: string
 }
+
+export interface VersionInfo {
+  version: string
+  env: string
+}

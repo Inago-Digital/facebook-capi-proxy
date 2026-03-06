@@ -99,6 +99,14 @@ app.get("/health", publicOptionsCors, (_req: Request, res: Response) =>
   res.json({ status: "ok", ts: new Date().toISOString() }),
 )
 
+app.options("/version", publicOptionsCors)
+app.get("/version", publicOptionsCors, (_req: Request, res: Response) =>
+  res.json({
+    version: process.env.npm_package_version,
+    env: process.env.NODE_ENV,
+  }),
+)
+
 app.options("/admin/*", adminCors)
 
 app.use(express.json({ limit: "64kb" }))

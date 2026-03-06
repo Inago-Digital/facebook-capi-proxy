@@ -16,6 +16,7 @@ import { OverviewView } from "./views/OverviewView"
 import { SitesView } from "./views/SitesView"
 import { SnippetView } from "./views/SnippetView"
 import { DeleteSiteModal } from "./modals/DeleteSiteModal"
+import { useVersion } from "../hooks/useVersion"
 
 const VIEW_NAMES: ViewName[] = ["overview", "sites", "logs", "snippet"]
 
@@ -44,6 +45,8 @@ export function Dashboard() {
     healthTimestamp,
     logout,
   } = useAdminApi()
+
+  const { versionInfo } = useVersion(apiFetch)
 
   const {
     sites,
@@ -155,6 +158,7 @@ export function Dashboard() {
         <div className="relative grid h-screen grid-cols-[220px_1fr] grid-rows-[48px_1fr] max-[900px]:grid-cols-1">
           <Topbar
             envLabel={envLabel}
+            versionInfo={versionInfo}
             onLogout={() => {
               void logout()
             }}
