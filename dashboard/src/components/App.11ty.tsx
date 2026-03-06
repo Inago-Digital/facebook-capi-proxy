@@ -3,6 +3,7 @@ import { ToastProvider, useToast } from "../context/ToastContext"
 import { Auth } from "./Auth"
 import { Dashboard } from "./Dashboard"
 import { ToastList } from "./ToastList"
+import { Spinner } from "./ui/Spinner"
 
 function WithAuth() {
   const { loading, isConnected } = useAdminApi()
@@ -13,7 +14,7 @@ function WithAuth() {
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen items-center justify-center bg-bg">
-        <div className="w-8 h-8 rounded-full border-4 border-accent border-t-transparent animate-spin" />
+        <Spinner />
       </div>
     )
   }

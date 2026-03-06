@@ -119,7 +119,7 @@ export function LogsView({
             {isLoading ? (
               <tr>
                 <td colSpan={6} className="px-5 py-5 text-center">
-                  <Spinner className="mx-auto" />
+                  <Spinner size="sm" className="mx-auto" />
                 </td>
               </tr>
             ) : rows.length === 0 ? (
