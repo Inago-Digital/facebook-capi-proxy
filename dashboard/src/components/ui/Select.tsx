@@ -165,7 +165,7 @@ export function Select({
         role="listbox"
       >
         {options.length === 0 ? (
-          <div className="text-center font-mono text-[12px] text-text">
+          <div className="text-center font-mono py-2 text-[12px] text-textDim">
             {noOptionsMessage}
           </div>
         ) : (

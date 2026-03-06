@@ -1,10 +1,14 @@
 import { AdminApiProvider, useAdminApi } from "../context/AdminApiContext"
-import { ToastProvider } from "../context/ToastContext"
+import { ToastProvider, useToast } from "../context/ToastContext"
 import { Auth } from "./Auth"
 import { Dashboard } from "./Dashboard"
+import { ToastList } from "./ToastList"
 
 function WithAuth() {
   const { loading, isConnected } = useAdminApi()
+  const { toasts } = useToast()
+
+  let content = null
 
   if (loading) {
     return (
@@ -15,10 +19,19 @@ function WithAuth() {
   }
 
   if (!isConnected) {
-    return <Auth />
+    content = <Auth />
   }
 
-  return <Dashboard />
+  if (isConnected) {
+    content = <Dashboard />
+  }
+
+  return (
+    <>
+      {content}
+      <ToastList toasts={toasts} />
+    </>
+  )
 }
 
 export function App() {

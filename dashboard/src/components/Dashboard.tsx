@@ -9,7 +9,6 @@ import { RotateKeyModal } from "./modals/RotateKeyModal"
 import { SiteModal } from "./modals/SiteModal"
 import { Sidebar } from "./Sidebar"
 import { isSiteActive } from "../utils/site"
-import { ToastList } from "./ToastList"
 import { Topbar } from "./Topbar"
 import type { ViewName } from "../utils/types"
 import { LogsView } from "./views/LogsView"
@@ -35,7 +34,6 @@ export function Dashboard() {
     name: string
   } | null>(null)
 
-  const { toasts } = useToast()
   const {
     apiFetch,
     envLabel,
@@ -292,8 +290,6 @@ export function Dashboard() {
           setDeleteSiteModalOpen(false)
         }}
       />
-
-      <ToastList toasts={toasts} />
     </>
   )
 }

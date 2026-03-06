@@ -9,4 +9,4 @@
 - [ ] Show "last event received at" per site in Overview table for at-a-glance activity
 - [ ] Add a small `GET /version` endpoint in server with app version + environment
 - [ ] Add basic request validation error details (`field`, `reason`) in API responses for easier integration debugging
-- [ ] Add user-friendly error messages when login fails (e.g. "Invalid credentials") instead of generic "Unauthorized"
+- [x] Add user-friendly error messages when login fails (e.g. "Invalid credentials") instead of generic "Unauthorized"
